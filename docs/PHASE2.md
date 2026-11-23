@@ -57,6 +57,6 @@ Every demo saves a colour-free transcript to `evidence/phase2/` (Evidence Folder
 Rehearse without a teacher: `bin/phase2 drill` injects one random, reversible fault on your Mac without saying which; diagnose with `bin/doctor`; `drill reveal` / `drill fix`.
 
 ## Limits (say them before you are asked)
-* Backup DNS is not auto-synced: a record change must be applied on both DNS Macs (`bin/phase2 point ...`). Real systems use zone transfer or a managed DNS service.
+* Backup DNS is not auto-synced: a record change must be applied on both DNS Macs (`bin/phase2 point ...`); `bin/phase2 test` and `status` now FAIL if the two DNS servers disagree, so a forgotten sync cannot go unnoticed. Real systems use zone transfer or a managed DNS service.
 * Cutover is manual and bounded by the TTL; true HA needs a floating IP or health-checked DNS (see D).
 * pf and the OS DNS cache are macOS behaviours; run the demos once on the real Macs before the evaluation and keep the transcripts in `evidence/phase2/`.

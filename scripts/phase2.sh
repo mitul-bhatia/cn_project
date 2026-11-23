@@ -71,6 +71,8 @@ p2_unguard() { trap - EXIT INT TERM; }
 # ------------------------------------------------------------ probes -------
 dig_at()   { "$DIG" +short +time=2 +tries=1 -p "$DNS_PORT" "@$1" "$APP_DOMAIN" 2>/dev/null | head -1; }
 chk_dns2() { is_edge_ip "$(dig_at "$DNS2_IP")"; }
+# Both DNS servers must give the SAME answer, or a dead primary would send clients to a stale edge (see `bin/phase2 point`).
+chk_dns_agree() { local a b; a="$(dig_at "$DNS_IP")"; b="$(dig_at "$DNS2_IP")"; [ -n "$a" ] && [ "$a" = "$b" ]; }
 edge_health_at() { app_curl --resolve "${APP_DOMAIN}:${EDGE_PORT}:$1" "$APP_URL/__edge/health" 2>/dev/null; }
 edge_label_at()  { app_curl --resolve "${APP_DOMAIN}:${EDGE_PORT}:$1" -o /dev/null -D - "$APP_URL/__edge/health" 2>/dev/null | tr -d '\r' | awk 'tolower($1)=="x-edge:"{print $2}'; }
 chk_edge_primary() { [ "$(edge_health_at "$EDGE_IP")" = "edge ok" ]; }
@@ -482,6 +484,7 @@ p2_status() {
   [ -n "$DNS2_IP" ]         && row "Backup DNS   $DNS2_IP"        "$(mark chk_dns2)"
   row "Primary edge $EDGE_IP"  "$(mark chk_edge_primary)"
   [ -n "$STANDBY_EDGE_IP" ] && row "Standby edge $STANDBY_EDGE_IP" "$(mark chk_edge_standby)"
+  [ -n "$DNS2_IP" ]         && row "DNS servers agree"             "$(mark chk_dns_agree)"
   row "DNS record points to"   "$(dig_at "$DNS_IP")"
   return 0
 }
