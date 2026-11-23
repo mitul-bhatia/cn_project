@@ -1,0 +1,616 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Team AEIN · CN Project</title>
+<meta name="description" content="A small HTTPS site built from scratch with our own DNS, nginx load balancer and two backends, then broken on purpose. Try the simulator.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='16' fill='%23f2a33a'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f5f7fa; --card:#ffffff; --ink:#10243a; --muted:#51657a; --line:#d6dee7; --soft:#e9f0f6;
+  --teal:#176a8a; --teal-solid:#1c7293; --amber:#f2a33a; --amber-ink:#8a5200;
+  --green:#1b8556; --red:#c43b3b; --box-ink:#10243a; --code-bg:#0e1a29; --code-ink:#d7e3ee;
+  --hero-bg:#10243a; --hero-ink:#ffffff; --fw:#c43b3b;
+  --bar-old-bg:#f3c8c8; --bar-old-ink:#7a1f1f; --bar-new-bg:#bfe8d3; --bar-new-ink:#0f5a3a;
+  --serif:"Iowan Old Style",Georgia,"Times New Roman",serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0b1520; --card:#12243a; --ink:#e8eef5; --muted:#9fb2c4; --line:#27405a; --soft:#193048;
+    --teal:#6cc0de; --amber-ink:#f2b866; --green:#4ccf93; --red:#ff8585; --box-ink:#26425f;
+    --code-bg:#08111b; --hero-bg:#09121c; --fw:#ff8585;
+    --bar-old-bg:#5a2626; --bar-old-ink:#ffd0d0; --bar-new-bg:#17513a; --bar-new-ink:#c9f3df;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0b1520; --card:#12243a; --ink:#e8eef5; --muted:#9fb2c4; --line:#27405a; --soft:#193048;
+  --teal:#6cc0de; --amber-ink:#f2b866; --green:#4ccf93; --red:#ff8585; --box-ink:#26425f;
+  --code-bg:#08111b; --hero-bg:#09121c; --fw:#ff8585;
+  --bar-old-bg:#5a2626; --bar-old-ink:#ffd0d0; --bar-new-bg:#17513a; --bar-new-ink:#c9f3df;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:64px}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.6 var(--sans)}
+h1,h2,h3{font-family:var(--serif);line-height:1.15;margin:0;text-wrap:balance}
+a{color:var(--teal)}
+code{font-family:var(--mono)}
+.wrap{max-width:1080px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+:focus-visible{outline:3px solid var(--amber);outline-offset:2px}
+
+/* nav */
+nav{position:sticky;top:0;z-index:20;background:var(--card);border-bottom:1px solid var(--line)}
+nav .wrap{display:flex;gap:4px;align-items:center;overflow-x:auto;padding-top:8px;padding-bottom:8px}
+nav b{font-family:var(--serif);margin-right:10px;white-space:nowrap}
+nav a{white-space:nowrap;text-decoration:none;color:var(--muted);padding:7px 13px;border-radius:999px;font-size:14px;font-weight:600}
+nav a:hover{background:var(--soft);color:var(--ink)}
+nav .gh{margin-left:auto}
+
+/* hero */
+.hero{background:var(--hero-bg);color:var(--hero-ink);padding:60px 0 54px}
+.eyebrow{font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--amber)}
+.hero h1{font-size:clamp(34px,6.4vw,60px);margin:12px 0 16px;max-width:17ch}
+.hero p{max-width:58ch;color:#cadcfc;font-size:19px;margin:0 0 26px}
+.cta{display:flex;gap:12px;flex-wrap:wrap}
+.btn{font:inherit;font-weight:700;font-size:15px;border:0;border-radius:999px;padding:12px 22px;cursor:pointer;text-decoration:none;display:inline-block}
+.btn.primary{background:var(--amber);color:#10243a}
+.btn.ghost{background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.28)}
+.btn:hover{filter:brightness(1.08)}
+
+section{padding:54px 0 6px}
+.sec-h{margin-bottom:8px}
+.kicker{font-size:12px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:var(--teal)}
+.sec-h h2{font-size:clamp(26px,4vw,36px);margin-top:4px}
+.lead{color:var(--muted);margin:8px 0 22px;max-width:66ch;font-size:18px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px}
+
+/* team */
+.team{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.mac{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:2px}
+.mac small{color:var(--muted);font-weight:700;letter-spacing:.08em;text-transform:uppercase;font-size:11px}
+.mac b{font-size:19px;font-family:var(--serif)}
+.mac span{color:var(--muted);font-size:15px}
+
+/* stepper */
+.steps{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:14px}
+.step{font:inherit;text-align:left;background:var(--card);border:2px solid var(--line);border-radius:14px;padding:12px;cursor:pointer;color:var(--ink);display:flex;flex-direction:column;gap:2px}
+.step small{color:var(--muted);font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+.step b{font-size:17px;font-family:var(--serif)}
+.step[aria-selected="true"]{border-color:var(--amber);background:var(--soft)}
+.step:hover{border-color:var(--teal)}
+.sbody{display:grid;grid-template-columns:1.1fr 1fr;gap:22px}
+.analogy{font-family:var(--serif);font-size:26px;line-height:1.25;margin:0 0 10px}
+.what{margin:0;color:var(--muted)}
+.mini{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--amber-ink);margin:0 0 6px}
+.cmdw{min-width:0;margin-bottom:12px}
+.cmd{display:flex;background:var(--code-bg);border-radius:10px;overflow:hidden}
+.cmd code{flex:1;min-width:0;padding:10px 12px;color:var(--code-ink);font-size:13px;line-height:1.5;white-space:pre-wrap;word-break:break-word}
+.copy{border:0;background:#1d3652;color:#cfe3f5;font-weight:700;font-size:12px;padding:0 14px;cursor:pointer;min-width:62px}
+.copy:hover,.copy:focus-visible{background:var(--teal-solid);color:#fff}
+.copy.done{background:var(--green);color:#fff}
+.see{background:var(--code-bg);color:#5fd39a;border-radius:10px;padding:10px 12px;font:13px/1.5 var(--mono);white-space:pre-wrap;word-break:break-word;margin:0 0 12px}
+.refs{display:flex;flex-wrap:wrap;gap:6px}
+.ref{display:inline-flex;font:12px/1.4 var(--mono);text-decoration:none;border:1px solid var(--line);border-radius:8px;padding:3px 9px;color:var(--ink);background:var(--card);word-break:break-all}
+.ref b{color:var(--amber-ink)}
+.ref:hover{border-color:var(--teal);background:var(--soft)}
+
+/* tasks */
+.tasks{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+.task{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:8px}
+.task header{display:flex;gap:10px;align-items:center}
+.task h3{font-size:18px}
+.task p{margin:0;font-size:15px;color:var(--muted)}
+.badge{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:var(--teal-solid);color:#fff;font-weight:800;flex:none}
+.badge.amber{background:var(--amber);color:#10243a}
+
+/* simulator */
+.sim{display:grid;grid-template-columns:260px 1fr;gap:16px;align-items:start}
+.controls{display:flex;flex-direction:column;gap:8px}
+.controls h3{font-size:16px;font-family:var(--sans);letter-spacing:.02em;margin:6px 0 0}
+.tog{font:inherit;font-weight:600;font-size:15px;text-align:left;background:var(--card);color:var(--ink);border:2px solid var(--line);border-radius:12px;padding:10px 12px;cursor:pointer;display:flex;gap:10px;align-items:center}
+.tog i{font-style:normal;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--soft);font-size:13px;flex:none}
+.tog[aria-pressed="true"]{border-color:var(--red);background:color-mix(in srgb,var(--red) 10%,var(--card))}
+.tog[aria-pressed="true"] i{background:var(--red);color:#fff}
+.tog:hover:not(:disabled){border-color:var(--teal)}
+.tog:disabled{opacity:.5;cursor:not-allowed}
+.send{background:var(--amber);color:#10243a;border:0;border-radius:12px;font:inherit;font-weight:800;font-size:16px;padding:13px;cursor:pointer}
+.send:hover{filter:brightness(1.07)}
+.ghostb{font:inherit;font-weight:600;background:transparent;color:var(--teal);border:2px solid var(--line);border-radius:12px;padding:9px;cursor:pointer}
+.ghostb:hover{border-color:var(--teal)}
+.stage{min-width:0}
+.mapwrap{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:18px}
+#sim{display:block;width:100%;min-width:700px;height:auto}
+#sim text{font-family:var(--sans)}
+#sim .node rect{fill:var(--box-ink);stroke:var(--box-ink);stroke-width:2}
+#sim .node.edge rect,#sim .node.dns rect{fill:var(--teal-solid);stroke:var(--teal-solid)}
+#sim .node.spare rect{fill:var(--card);stroke:var(--amber);stroke-dasharray:6 5}
+#sim .node .t{fill:#fff;font-size:17px;font-weight:700;text-anchor:middle}
+#sim .node .s{fill:#dce8f2;font-size:13px;text-anchor:middle}
+#sim .node.spare .t{fill:var(--amber-ink)}
+#sim .node.spare .s{fill:var(--muted)}
+#sim .node.down rect{fill:var(--card);stroke:var(--red);stroke-dasharray:6 5}
+#sim .node.down .t,#sim .node.down .s{fill:var(--red)}
+#sim .node.hit rect{stroke:var(--amber);stroke-width:4}
+#sim .ed{fill:none;stroke:var(--line);stroke-width:2.5}
+#sim .ed.on{stroke:var(--amber);stroke-width:5}
+#sim .ed.bad{stroke:var(--red);stroke-width:4;stroke-dasharray:7 6}
+#sim .fwbox{fill:none;stroke:var(--fw);stroke-width:2.5;stroke-dasharray:9 7;opacity:0;transition:opacity .25s}
+#sim .fwbox.on{opacity:1}
+#sim .fwl{fill:var(--fw);font-size:14px;font-weight:700;opacity:0}
+#sim .fwl.on{opacity:1}
+#sim .lbl{fill:var(--muted);font-size:13px}
+.result{margin-top:14px;display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:start}
+.verdict{border-radius:14px;padding:14px 18px;min-width:210px;border:2px solid var(--line);background:var(--card)}
+.verdict small{display:block;color:var(--muted);font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+.verdict b{font-size:26px;font-family:var(--serif)}
+.verdict.ok{border-color:var(--green)}.verdict.ok b{color:var(--green)}
+.verdict.fail{border-color:var(--red)}.verdict.fail b{color:var(--red)}
+.verdict.warn{border-color:var(--amber)}.verdict.warn b{color:var(--amber-ink)}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.chip{min-width:34px;height:34px;border-radius:9px;display:grid;place-items:center;font-weight:800;font-size:14px;padding:0 6px}
+.chip.a{background:var(--teal-solid);color:#fff}.chip.b{background:var(--amber);color:#10243a}.chip.x{background:var(--red);color:#fff}
+.story{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px;font-size:16px}
+.story li{display:flex;gap:10px}
+.story li::before{content:attr(data-n);flex:none;width:24px;height:24px;border-radius:50%;background:var(--soft);display:grid;place-items:center;font-size:12px;font-weight:800;margin-top:2px}
+.story li.bad::before{background:var(--red);color:#fff}
+.realcmd{margin-top:10px}
+.ttl{height:10px;border-radius:999px;background:var(--soft);overflow:hidden;margin-top:6px}
+.ttl i{display:block;height:100%;width:0;background:var(--amber)}
+.hint{color:var(--muted);font-size:14px;margin:8px 2px 0}
+
+/* receipts */
+.rgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(310px,1fr));gap:14px}
+.rec{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.rec header{display:flex;gap:10px;align-items:center}
+.rec h3{font-size:19px;flex:1}
+.rec p{margin:0;color:var(--muted);font-size:15px}
+.term{margin:0;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:12px;font:12.5px/1.55 var(--mono);white-space:pre-wrap;word-break:break-word}
+.term .g{color:#5fd39a}.term .r{color:#ff8a8a}.term .d{color:#8fa3b5}.term .p{color:#f2c078}
+.tag{font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;border:1px solid var(--green);color:var(--green);white-space:nowrap}
+.tag.demo{border-color:var(--amber-ink);color:var(--amber-ink)}
+
+/* ladder */
+details{background:var(--card);border:1px solid var(--line);border-radius:14px;margin-bottom:10px}
+summary{cursor:pointer;list-style:none;display:flex;gap:12px;align-items:center;padding:14px 16px;font-weight:700}
+summary::-webkit-details-marker{display:none}
+summary .n{width:30px;height:30px;border-radius:50%;background:var(--teal-solid);color:#fff;display:grid;place-items:center;flex:none}
+summary em{font-style:normal;font-weight:500;color:var(--muted);margin-left:auto;font-size:15px;text-align:right}
+details[open] summary{border-bottom:1px solid var(--line)}
+.dbody{padding:14px 16px;display:grid;gap:10px}
+.dbody p{margin:0}.fail{color:var(--red);font-weight:600}
+.note{border-left:4px solid var(--amber);background:var(--card);border-radius:0 12px 12px 0;padding:12px 16px;margin:16px 0 0;font-size:16px}
+
+/* table */
+.search{width:100%;max-width:420px;padding:11px 14px;border-radius:12px;border:2px solid var(--line);background:var(--card);color:var(--ink);font:inherit;margin-bottom:12px}
+.tblwrap{overflow-x:auto}
+.tbl{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);font-size:14px}
+.tbl th,.tbl td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+.tbl th{background:var(--soft);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.tbl .cmdw{margin:0;min-width:260px}
+footer{padding:44px 0 70px;color:var(--muted);font-size:15px}
+
+@media (max-width:860px){
+  .steps{grid-template-columns:1fr 1fr}
+  .sbody{grid-template-columns:1fr}
+  .sim{grid-template-columns:1fr}
+  .result{grid-template-columns:1fr}
+}
+@media (max-width:560px){
+  .hero{padding:42px 0 38px}
+  .tbl .hide-s{display:none}
+  summary em{display:none}
+}
+@media (prefers-reduced-motion: reduce){
+  html{scroll-behavior:auto}
+  *{transition:none!important;animation:none!important}
+}
+
+</style>
+</head>
+<body>
+<nav aria-label="Sections"><div class="wrap">
+  <b>Team AEIN</b>
+  <a href="#journey">The journey</a><a href="#tasks">Phase 1</a><a href="#break">Break it</a><a href="#proof">Phase 2 proof</a><a href="#find">Find the fault</a><a href="#commands">Commands</a>
+  <a class="gh" href="https://github.com/mitul-bhatia/cn_project" target="_blank" rel="noopener">GitHub ↗</a>
+</div></nav>
+
+<header class="hero"><div class="wrap">
+  <div class="eyebrow">Computer Networks · Phase 1 + Phase 2</div>
+  <h1>A tiny website, built from scratch. Then we broke it on purpose.</h1>
+  <p>Our own DNS, our own HTTPS, a load balancer and two backends on real Macs. Follow one request, then press the buttons and try to take it down.</p>
+  <div class="cta"><a class="btn primary" href="#break">Break it yourself</a><a class="btn ghost" href="#journey">Follow one request</a></div>
+</div></header>
+
+<main class="wrap">
+
+<section id="team">
+  <div class="sec-h"><div class="kicker">The team's machines</div><h2>Four Macs, four jobs</h2></div>
+  <p class="lead">Each Mac runs one role. With fewer Macs, one Mac takes several roles. Setup is one command per Mac.</p>
+  <div class="team"><div class="mac"><small>Mac 1</small><b>Mitul</b><span>DNS server, test client, controller</span><div class="refs"><a class="ref" href="https://github.com/mitul-bhatia/cn_project/blob/main/macs/mac1-mitul/README.md" target="_blank" rel="noopener"><span>macs/mac1-mitul/README.md</span></a></div></div><div class="mac"><small>Mac 2</small><b>Hardik</b><span>nginx edge: TLS, proxy, load balancer</span><div class="refs"><a class="ref" href="https://github.com/mitul-bhatia/cn_project/blob/main/macs/mac2-hardik/README.md" target="_blank" rel="noopener"><span>macs/mac2-hardik/README.md</span></a></div></div><div class="mac"><small>Mac 3</small><b>Vaibhav</b><span>Backend A, port 3001</span><div class="refs"><a class="ref" href="https://github.com/mitul-bhatia/cn_project/blob/main/macs/mac3-vaibhav/README.md" target="_blank" rel="noopener"><span>macs/mac3-vaibhav/README.md</span></a></div></div><div class="mac"><small>Mac 4</small><b>Akshat</b><span>Backend B, port 3002</span><div class="refs"><a class="ref" href="https://github.com/mitul-bhatia/cn_project/blob/main/macs/mac4-akshat/README.md" target="_blank" rel="noopener"><span>macs/mac4-akshat/README.md</span></a></div></div></div>
+</section>
+
+<section id="journey">
+  <div class="sec-h"><div class="kicker">Phase 1</div><h2>One request, five stops</h2></div>
+  <p class="lead">Type <code>https://app.team1.test:8443</code> and this happens. Tap a stop to see the idea, the command and the code.</p>
+  <div class="steps" role="tablist" aria-label="Stops of a request">
+    <button type="button" class="step" role="tab" aria-selected="false"><small>1 · Name</small><b>DNS</b></button><button type="button" class="step" role="tab" aria-selected="false"><small>2 · Door</small><b>TCP</b></button><button type="button" class="step" role="tab" aria-selected="false"><small>3 · ID check</small><b>TLS</b></button><button type="button" class="step" role="tab" aria-selected="false"><small>4 · Reception</small><b>nginx</b></button><button type="button" class="step" role="tab" aria-selected="false"><small>5 · Kitchen</small><b>Backend</b></button>
+  </div>
+  <div class="panel">
+    <div class="spanel" role="tabpanel" hidden>
+      <div class="sbody">
+        <div><p class="analogy">Look the shop up in a phone book.</p><p class="what">Our own DNS server (dnsmasq) turns app.team1.test into the edge Mac's address. It only answers for .test names and never forwards to the internet.</p></div>
+        <div><p class="mini">Try it</p><div class="cmdw"><div class="cmd"><code>dig @&lt;DNS_IP&gt; app.team1.test</code><button type="button" class="copy" aria-label="Copy command">Copy</button></div></div><p class="mini">You will see</p><pre class="see">app.team1.test.   300   IN   A   &lt;edge-ip&gt;</pre><p class="mini">Where in the code</p><div class="refs"><a class="ref" href="https://github.com/mitul-bhatia/cn_project/blob/main/config/dns/dnsmasq.conf.template#L17" target="_blank" rel="noopener"><span>config/dns/dnsmasq.conf.template</span><b>:17</b></a><a class="ref" href="https://github.com/mitul-bhatia/cn_project/blob/main/scripts/roles.sh#L23" target="_blank" rel="noopener"><span>scripts/roles.sh</span><b>:23</b></a><a class="ref" href="https://github.com/mitul-bhatia/cn_project/blob/main/scripts/roles.sh#L63" target="_blank" rel="noopener"><span>scripts/roles.sh</span><b>:63</b></a></div></div>
+      </div></div><div class="spanel" role="tabpanel" hidden>
+      <div class="sbody">
+        <div><p class="analogy">Walk up and knock three times.</p><p class="what">The client opens a TCP connection to the edge on port 8443: SYN, SYN-ACK, ACK. If nothing is listening, the knock is refused.</p></div>
+        <div><p class="mini">Try it</p><div class="cmdw"><div class="cmd"><code>nc -vz &lt;EDGE_IP&gt; 8443</code><button type="button" class="copy" aria-label="Copy command">Copy</button></div></div><p class="mini">You will see</p><pre class="see">Connection to &lt;EDGE_IP&gt; port 8443 ... succeeded!</pre><p class="mini">Where in the code</p><div class="refs"><a class="ref" href="https://github.com/mitul-bhatia/cn_project/blob/main/config/nginx/nginx.conf.template#L35" target="_blank" rel="noopener"><span>config/nginx/nginx.conf.template</span><b>:35</b></a><a class="ref" href="https://github.com/mitul-bhatia/cn_project/blob/main/scripts/checks.sh#L37" target="_blank" rel="noopener"><span>scripts/checks.sh</span><b>:37</b></a></div></div>
+      </div></div><div class="spanel" role="tabpanel" hidden>
+      <div class="sbody">
+        <div><p class="analogy">The shop shows an ID card signed by an authority you trust.</p><p class="what">Our own CA signed a certificate for app.team1.test and api.team1.test. Clients trust that CA, so there is no curl -k anywhere.</p></div>
+        <div><p class="mini">Try it</p><div class="cmdw"><div class="cmd"><code>openssl s_client -connect &lt;EDGE_IP&gt;:8443 -servername app.team1.test -CAfile pki/ca.crt</code><button type="button" class="copy" aria-label="Copy command">Copy</button></div></div><p class="mini">You will see</p><pre class="see">Verify return code: 0 (ok)</pre><p class="mini">Where in the code</p><div class="refs"><a class="ref" href="https://github.com/mitul-bhatia/cn_project/blob/main/scripts/create-local-ca.sh#L49" target="_blank" rel="noopener"><span>scripts/create-local-ca.sh</span><b>:49</b></a><a class="ref" href="https://github.com/mitul-bhatia/cn_project/blob/main/scripts/install-ca.sh#L38" target="_blank" rel="noopener"><span>scripts/install-ca.sh</span><b>:38</b></a><a class="ref" href="https://github.com/mitul-bhatia/cn_project/blob/main/config/nginx/nginx.conf.template#L39" target="_blank" rel="noopener"><span>config/nginx/nginx.conf.template</span><b>:39</b></a></div></div>
+      </div></div><div class="spanel" role="tabpanel" hidden>
+      <div class="sbody">
+        <div><p class="analogy">Reception takes your order and picks a kitchen.</p><p class="what">nginx ends the TLS session, then forwards the request to Backend A or Backend B in turn. That is a reverse proxy with round-robin load balancing.</p></div>
+        <div><p class="mini">Try it</p><div class="cmdw"><div class="cmd"><code>for i in 1 2 3 4; do curl -s https://app.team1.test:8443/api/status; echo; done</code><button type="button" class="copy" aria-label="Copy command">Copy</button></div></div><p class="mini">You will see</p><pre class="see">backend A, then B, then A, then B</pre><p class="mini">Where in the code</p><div class="refs"><a class="ref" href="https://github.com/mitul-bhatia/cn_project/blob/main/config/nginx/nginx.conf.template#L26" target="_blank" rel="noopener"><span>config/nginx/nginx.conf.template</span><b>:26</b></a><a class="ref" href="https://github.com/mitul-bhatia/cn_project/blob/main/scripts/roles.sh#L161" target="_blank" rel="noopener"><span>scripts/roles.sh</span><b>:161</b></a></div></div>
+      </div></div><div class="spanel" role="tabpanel" hidden>
+      <div class="sbody">
+        <div><p class="analogy">The kitchen cooks the answer and signs it A or B.</p><p class="what">One tiny Python server. Every reply carries an X-Backend header, so you can always see which kitchen answered.</p></div>
+        <div><p class="mini">Try it</p><div class="cmdw"><div class="cmd"><code>curl -i https://app.team1.test:8443/api/status</code><button type="button" class="copy" aria-label="Copy command">Copy</button></div></div><p class="mini">You will see</p><pre class="see">{"backend": "A", "owner": "...", "status": "ok"}
+X-Backend: A</pre><p class="mini">Where in the code</p><div class="refs"><a class="ref" href="https://github.com/mitul-bhatia/cn_project/blob/main/backends/server.py#L68" target="_blank" rel="noopener"><span>backends/server.py</span><b>:68</b></a><a class="ref" href="https://github.com/mitul-bhatia/cn_project/blob/main/backends/server.py#L34" target="_blank" rel="noopener"><span>backends/server.py</span><b>:34</b></a></div></div>
+      </div></div>
+  </div>
+</section>
+
+<section id="tasks">
+  <div class="sec-h"><div class="kicker">Phase 1 checklist</div><h2>Seven things we built</h2></div>
+  <p class="lead">Tasks A to G from the brief, each with the code behind it.</p>
+  <div class="tasks"><article class="task"><header><span class="badge">A</span><h3>LAN</h3></header><p>All Macs on one Wi-Fi. IP, MAC and gateway recorded. Pairwise ping.</p><div class="refs"><a class="ref" href="https://github.com/mitul-bhatia/cn_project/blob/main/scripts/macos-network-info.sh" target="_blank" rel="noopener"><span>scripts/macos-network-info.sh</span></a></div></article><article class="task"><header><span class="badge">B</span><h3>DNS</h3></header><p>dnsmasq answers app and api names with the edge IP.</p><div class="refs"><a class="ref" href="https://github.com/mitul-bhatia/cn_project/blob/main/config/dns/dnsmasq.conf.template#L17" target="_blank" rel="noopener"><span>config/dns/dnsmasq.conf.template</span><b>:17</b></a><a class="ref" href="https://github.com/mitul-bhatia/cn_project/blob/main/tests/test_dns.sh" target="_blank" rel="noopener"><span>tests/test_dns.sh</span></a></div></article><article class="task"><header><span class="badge">C</span><h3>Backends</h3></header><p>A on :3001, B on :3002, both with X-Backend.</p><div class="refs"><a class="ref" href="https://github.com/mitul-bhatia/cn_project/blob/main/backends/server.py#L68" target="_blank" rel="noopener"><span>backends/server.py</span><b>:68</b></a><a class="ref" href="https://github.com/mitul-bhatia/cn_project/blob/main/tests/test_backends.sh" target="_blank" rel="noopener"><span>tests/test_backends.sh</span></a></div></article><article class="task"><header><span class="badge">D</span><h3>Edge + balancer</h3></header><p>One name, one door, round robin A, B, A, B.</p><div class="refs"><a class="ref" href="https://github.com/mitul-bhatia/cn_project/blob/main/config/nginx/nginx.conf.template#L26" target="_blank" rel="noopener"><span>config/nginx/nginx.conf.template</span><b>:26</b></a><a class="ref" href="https://github.com/mitul-bhatia/cn_project/blob/main/tests/test_load_balancing.sh" target="_blank" rel="noopener"><span>tests/test_load_balancing.sh</span></a></div></article><article class="task"><header><span class="badge">E</span><h3>TLS</h3></header><p>Own CA, certificate with both names, trusted by clients.</p><div class="refs"><a class="ref" href="https://github.com/mitul-bhatia/cn_project/blob/main/scripts/create-local-ca.sh#L49" target="_blank" rel="noopener"><span>scripts/create-local-ca.sh</span><b>:49</b></a><a class="ref" href="https://github.com/mitul-bhatia/cn_project/blob/main/tests/test_tls.sh" target="_blank" rel="noopener"><span>tests/test_tls.sh</span></a></div></article><article class="task"><header><span class="badge">F</span><h3>Caching</h3></header><p>Cache-Control, ETag and 304 Not Modified.</p><div class="refs"><a class="ref" href="https://github.com/mitul-bhatia/cn_project/blob/main/backends/server.py#L75" target="_blank" rel="noopener"><span>backends/server.py</span><b>:75</b></a><a class="ref" href="https://github.com/mitul-bhatia/cn_project/blob/main/tests/test_cache.sh" target="_blank" rel="noopener"><span>tests/test_cache.sh</span></a></div></article><article class="task"><header><span class="badge">G</span><h3>Packets</h3></header><p>Capture DNS, TCP and TLS handshakes for Wireshark.</p><div class="refs"><a class="ref" href="https://github.com/mitul-bhatia/cn_project/blob/main/scripts/capture-packets.sh" target="_blank" rel="noopener"><span>scripts/capture-packets.sh</span></a><a class="ref" href="https://github.com/mitul-bhatia/cn_project/blob/main/bin/collect-evidence" target="_blank" rel="noopener"><span>bin/collect-evidence</span></a></div></article></div>
+</section>
+
+<section id="break">
+  <div class="sec-h"><div class="kicker">Phase 2 · try it</div><h2>Break it yourself</h2></div>
+  <p class="lead">This is a model of our real system. Stop something, then send a request and watch what survives.</p>
+  <div class="sim">
+    <div class="controls">
+      <button type="button" class="send" id="b-send">Send a request</button>
+      <button type="button" class="ghostb" id="b-six">Send 6 requests</button>
+      <h3>Stop something</h3>
+      <button type="button" class="tog" id="t-dns" aria-pressed="false"><i>A</i>Stop the primary DNS</button>
+      <button type="button" class="tog" id="t-a" aria-pressed="false"><i>D</i>Stop Backend A</button>
+      <button type="button" class="tog" id="t-b" aria-pressed="false"><i>D</i>Stop Backend B</button>
+      <button type="button" class="tog" id="t-e1" aria-pressed="false"><i>E</i>Stop the primary edge</button>
+      <h3>Then fix or protect</h3>
+      <button type="button" class="ghostb" id="b-cut">Move DNS to the standby edge</button>
+      <button type="button" class="tog" id="t-fw" aria-pressed="false"><i>C</i>Firewall the backends</button>
+      <button type="button" class="ghostb" id="b-direct">Client tries a backend directly</button>
+      <button type="button" class="ghostb" id="b-reset">Reset</button>
+    </div>
+    <div class="stage">
+      <div class="mapwrap"><svg id="sim" role="img" aria-label="Interactive map of the system: client, DNS, backup DNS, edge, standby edge, and two backends"></svg></div>
+      <div class="result" aria-live="polite">
+        <div>
+          <div class="verdict" id="verdict"><small>Result</small><b id="vbig">-</b><div id="vsub" style="color:var(--muted);font-size:15px"></div></div>
+          <div class="chips" id="chips"></div>
+        </div>
+        <div>
+          <ol class="story" id="story"></ol>
+          <div id="ttl" hidden><p class="hint" id="ttltxt"></p><div class="ttl"><i id="ttlbar"></i></div></div>
+          <p class="hint realcmd" id="real"></p>
+        </div>
+      </div>
+      <p class="hint">Try this: stop Backend A and send 6 requests. Then stop the primary edge, and fix it with the cutover button.</p>
+    </div>
+  </div>
+</section>
+
+<section id="proof">
+  <div class="sec-h"><div class="kicker">Phase 2 · proof</div><h2>What happened on the real Macs</h2></div>
+  <p class="lead">Each demo saves a transcript and puts the system back afterwards. These are from our recorded runs.</p>
+  <div class="rgrid"><article class="rec">
+    <header><span class="badge amber">A</span><h3>Backup DNS</h3><span class="tag ">Recorded run</span></header>
+    <p>Primary DNS stopped. The backup answered, so the site kept working.</p><pre class="term"><span class="p">$ dig @primary-dns app.team1.test</span>
+<span class="r">;; connection timed out; no servers could be reached</span>
+<span class="p">$ dig @backup-dns app.team1.test</span>
+app.team1.test.  300  IN  A  &lt;edge-ip&gt;
+<span class="p">$ curl https://app.team1.test:8443/api/status</span>
+<span class="g">http=200</span>
+<span class="g">PASS: still resolves with the primary DNS down</span></pre><div class="cmdw"><div class="cmd"><code>./bin/phase2 dns-failover</code><button type="button" class="copy" aria-label="Copy command">Copy</button></div></div><div class="refs"><a class="ref" href="https://github.com/mitul-bhatia/cn_project/blob/main/scripts/phase2.sh#L180" target="_blank" rel="noopener"><span>scripts/phase2.sh</span><b>:180</b></a></div></article><article class="rec">
+    <header><span class="badge amber">B</span><h3>TTL and cache</h3><span class="tag ">Recorded run</span></header>
+    <p>TTL 30 s. The server knew the new IP at once. The client kept the old one for 39 s.</p><pre class="term"><span class="d">record changed: old edge -> standby edge</span>
+server (dig)     : <span class="g">standby</span>
+client (cached)  : <span class="r">old edge</span>
+t+36s  client = old edge
+t+39s  client = <span class="g">standby</span>
+<span class="p">$ sudo dscacheutil -flushcache</span>
+<span class="g">PASS: change visible at once after the flush</span></pre><div class="cmdw"><div class="cmd"><code>./bin/phase2 ttl</code><button type="button" class="copy" aria-label="Copy command">Copy</button></div></div><div class="refs"><a class="ref" href="https://github.com/mitul-bhatia/cn_project/blob/main/scripts/phase2.sh#L215" target="_blank" rel="noopener"><span>scripts/phase2.sh</span><b>:215</b></a><a class="ref" href="https://github.com/mitul-bhatia/cn_project/blob/main/config/dns/dnsmasq.conf.template#L21" target="_blank" rel="noopener"><span>config/dns/dnsmasq.conf.template</span><b>:21</b></a></div></article><article class="rec">
+    <header><span class="badge amber">D</span><h3>Backend failover</h3><span class="tag ">Recorded run</span></header>
+    <p>Backend A stopped. Every request still returned HTTP 200 from B. When A came back, sharing resumed.</p><pre class="term">healthy          : A B A B A B A B
+Backend A stopped: <span class="g">B B B B B B B B B B</span>
+                   GET /api/status -> HTTP 200  x3
+Backend A back   : A B A B A B A B
+<span class="g">PASS: failover and recovery observed</span></pre><div class="cmdw"><div class="cmd"><code>./bin/phase2 failover</code><button type="button" class="copy" aria-label="Copy command">Copy</button></div></div><div class="refs"><a class="ref" href="https://github.com/mitul-bhatia/cn_project/blob/main/scripts/phase2.sh#L315" target="_blank" rel="noopener"><span>scripts/phase2.sh</span><b>:315</b></a><a class="ref" href="https://github.com/mitul-bhatia/cn_project/blob/main/config/nginx/nginx.conf.template#L27" target="_blank" rel="noopener"><span>config/nginx/nginx.conf.template</span><b>:27</b></a><a class="ref" href="https://github.com/mitul-bhatia/cn_project/blob/main/config/nginx/nginx.conf.template#L56" target="_blank" rel="noopener"><span>config/nginx/nginx.conf.template</span><b>:56</b></a></div></article><article class="rec">
+    <header><span class="badge amber">E</span><h3>Standby edge</h3><span class="tag ">Recorded run</span></header>
+    <p>DNS moved to the standby edge. The client switched only when its cached answer expired.</p><pre class="term">t+0s   dig=standby  client=primary  answered-by <span class="r">primary</span>
+t+19s  dig=standby  client=primary  answered-by <span class="r">primary</span>
+t+38s  dig=standby  client=primary  answered-by <span class="r">primary</span>
+t+41s  dig=standby  client=standby  answered-by <span class="g">STANDBY</span>
+<span class="g">PASS: traffic moved to the standby edge</span></pre><div class="cmdw"><div class="cmd"><code>./bin/phase2 cutover</code><button type="button" class="copy" aria-label="Copy command">Copy</button></div></div><div class="refs"><a class="ref" href="https://github.com/mitul-bhatia/cn_project/blob/main/scripts/phase2.sh#L405" target="_blank" rel="noopener"><span>scripts/phase2.sh</span><b>:405</b></a><a class="ref" href="https://github.com/mitul-bhatia/cn_project/blob/main/config/nginx/nginx.conf.template#L44" target="_blank" rel="noopener"><span>config/nginx/nginx.conf.template</span><b>:44</b></a></div></article><article class="rec">
+    <header><span class="badge amber">C</span><h3>Isolation</h3><span class="tag demo">Live demo</span></header>
+    <p>Only the edge may reach ports 3001 and 3002. We run this live. Rules the script generates:</p><pre class="term"><span class="d"># pf rules on a backend Mac (port 3002)</span>
+pass in quick on lo0 all
+<span class="g">pass  in quick inet proto tcp from { EDGE, STANDBY } to any port 3002</span>
+<span class="r">block drop in quick inet proto tcp from any to any port 3002</span></pre><div class="cmdw"><div class="cmd"><code>./bin/phase2 isolate on</code><button type="button" class="copy" aria-label="Copy command">Copy</button></div></div><div class="refs"><a class="ref" href="https://github.com/mitul-bhatia/cn_project/blob/main/scripts/phase2.sh#L250" target="_blank" rel="noopener"><span>scripts/phase2.sh</span><b>:250</b></a><a class="ref" href="https://github.com/mitul-bhatia/cn_project/blob/main/scripts/phase2.sh#L269" target="_blank" rel="noopener"><span>scripts/phase2.sh</span><b>:269</b></a><a class="ref" href="https://github.com/mitul-bhatia/cn_project/blob/main/scripts/phase2.sh#L286" target="_blank" rel="noopener"><span>scripts/phase2.sh</span><b>:286</b></a><a class="ref" href="https://github.com/mitul-bhatia/cn_project/blob/main/scripts/phase2.sh#L297" target="_blank" rel="noopener"><span>scripts/phase2.sh</span><b>:297</b></a></div></article></div>
+  <p class="note"><b>The one thing left that can still break:</b> the edge nginx. Our fix today is a standby edge plus a DNS cutover. It is manual and takes about one TTL. A real fix is two edges sharing a floating IP (VRRP), or DNS health checks that move the record by themselves.</p>
+</section>
+
+<section id="find">
+  <div class="sec-h"><div class="kicker">Extension F</div><h2>Something broke? Ask in this order</h2></div>
+  <p class="lead">Follow the path of the request. The first stop that fails is the problem.</p>
+  <details open><summary><span class="n">1</span>Name<em>Does the name become an IP?</em></summary><div class="dbody"><div class="cmdw"><div class="cmd"><code>dig @&lt;DNS_IP&gt; app.team1.test</code><button type="button" class="copy" aria-label="Copy command">Copy</button></div></div><p class="fail">Timeout or wrong IP means DNS: dnsmasq stopped, wrong record, or wrong resolver.</p><div class="refs"><a class="ref" href="https://github.com/mitul-bhatia/cn_project/blob/main/bin/doctor#L36" target="_blank" rel="noopener"><span>bin/doctor</span><b>:36</b></a><a class="ref" href="https://github.com/mitul-bhatia/cn_project/blob/main/scripts/checks.sh#L35" target="_blank" rel="noopener"><span>scripts/checks.sh</span><b>:35</b></a></div></div></details><details><summary><span class="n">2</span>Door<em>Can we knock on the port?</em></summary><div class="dbody"><div class="cmdw"><div class="cmd"><code>nc -vz &lt;EDGE_IP&gt; 8443</code><button type="button" class="copy" aria-label="Copy command">Copy</button></div></div><p class="fail">Refused or timeout means nginx is down, the port is wrong, or a firewall rule blocks it.</p><div class="refs"><a class="ref" href="https://github.com/mitul-bhatia/cn_project/blob/main/bin/doctor#L39" target="_blank" rel="noopener"><span>bin/doctor</span><b>:39</b></a><a class="ref" href="https://github.com/mitul-bhatia/cn_project/blob/main/scripts/checks.sh#L37" target="_blank" rel="noopener"><span>scripts/checks.sh</span><b>:37</b></a></div></div></details><details><summary><span class="n">3</span>ID<em>Is the certificate trusted?</em></summary><div class="dbody"><div class="cmdw"><div class="cmd"><code>openssl s_client -connect &lt;EDGE_IP&gt;:8443 -servername app.team1.test -CAfile pki/ca.crt</code><button type="button" class="copy" aria-label="Copy command">Copy</button></div></div><p class="fail">A verify error means the CA is not installed, the name does not match, or the certificate expired.</p><div class="refs"><a class="ref" href="https://github.com/mitul-bhatia/cn_project/blob/main/bin/doctor#L42" target="_blank" rel="noopener"><span>bin/doctor</span><b>:42</b></a><a class="ref" href="https://github.com/mitul-bhatia/cn_project/blob/main/scripts/checks.sh#L38" target="_blank" rel="noopener"><span>scripts/checks.sh</span><b>:38</b></a></div></div></details><details><summary><span class="n">4</span>Answer<em>Does the site reply?</em></summary><div class="dbody"><div class="cmdw"><div class="cmd"><code>curl -i https://app.team1.test:8443/api/status</code><button type="button" class="copy" aria-label="Copy command">Copy</button></div></div><p class="fail">502 means the edge is up but both backends failed. One backend down still works.</p><div class="refs"><a class="ref" href="https://github.com/mitul-bhatia/cn_project/blob/main/bin/doctor#L68" target="_blank" rel="noopener"><span>bin/doctor</span><b>:68</b></a><a class="ref" href="https://github.com/mitul-bhatia/cn_project/blob/main/scripts/checks.sh#L42" target="_blank" rel="noopener"><span>scripts/checks.sh</span><b>:42</b></a></div></div></details>
+  <p class="hint"><code>./bin/doctor</code> runs this whole chain and names the first failing stop. <code>./bin/phase2 drill</code> hides a fault for us to practise on.</p>
+</section>
+
+<section id="commands">
+  <div class="sec-h"><div class="kicker">Cheat sheet</div><h2>Every command and where it lives</h2></div>
+  <input class="search" type="search" id="q" placeholder="Filter: dns, edge, failover, firewall" aria-label="Filter commands">
+  <div class="tblwrap"><table class="tbl" id="tbl">
+    <thead><tr><th>Command</th><th class="hide-s">Run on</th><th>Does</th><th>Code</th></tr></thead>
+    <tbody><tr><td><div class="cmdw"><div class="cmd"><code>./macs/mac1-mitul/setup.sh</code><button type="button" class="copy" aria-label="Copy command">Copy</button></div></div></td><td class="hide-s">Mac 1</td><td>Phase 1 setup: DNS + client</td><td><a class="ref" href="https://github.com/mitul-bhatia/cn_project/blob/main/macs/mac1-mitul/setup.sh" target="_blank" rel="noopener"><span>macs/mac1-mitul/setup.sh</span></a></td></tr><tr><td><div class="cmdw"><div class="cmd"><code>./macs/mac2-hardik/setup.sh</code><button type="button" class="copy" aria-label="Copy command">Copy</button></div></div></td><td class="hide-s">Mac 2</td><td>Phase 1 setup: edge (creates the CA)</td><td><a class="ref" href="https://github.com/mitul-bhatia/cn_project/blob/main/macs/mac2-hardik/setup.sh" target="_blank" rel="noopener"><span>macs/mac2-hardik/setup.sh</span></a></td></tr><tr><td><div class="cmdw"><div class="cmd"><code>./macs/mac3-vaibhav/setup.sh</code><button type="button" class="copy" aria-label="Copy command">Copy</button></div></div></td><td class="hide-s">Mac 3</td><td>Phase 1 setup: Backend A</td><td><a class="ref" href="https://github.com/mitul-bhatia/cn_project/blob/main/macs/mac3-vaibhav/setup.sh" target="_blank" rel="noopener"><span>macs/mac3-vaibhav/setup.sh</span></a></td></tr><tr><td><div class="cmdw"><div class="cmd"><code>./macs/mac4-akshat/setup.sh</code><button type="button" class="copy" aria-label="Copy command">Copy</button></div></div></td><td class="hide-s">Mac 4</td><td>Phase 1 setup: Backend B</td><td><a class="ref" href="https://github.com/mitul-bhatia/cn_project/blob/main/macs/mac4-akshat/setup.sh" target="_blank" rel="noopener"><span>macs/mac4-akshat/setup.sh</span></a></td></tr><tr><td><div class="cmdw"><div class="cmd"><code>./bin/status</code><button type="button" class="copy" aria-label="Copy command">Copy</button></div></div></td><td class="hide-s">any</td><td>System view using real requests</td><td><a class="ref" href="https://github.com/mitul-bhatia/cn_project/blob/main/bin/status" target="_blank" rel="noopener"><span>bin/status</span></a></td></tr><tr><td><div class="cmdw"><div class="cmd"><code>./bin/test-all</code><button type="button" class="copy" aria-label="Copy command">Copy</button></div></div></td><td class="hide-s">any</td><td>All Phase 1 tests</td><td><a class="ref" href="https://github.com/mitul-bhatia/cn_project/blob/main/bin/test-all" target="_blank" rel="noopener"><span>bin/test-all</span></a></td></tr><tr><td><div class="cmdw"><div class="cmd"><code>./bin/doctor</code><button type="button" class="copy" aria-label="Copy command">Copy</button></div></div></td><td class="hide-s">any</td><td>First failing layer and likely cause</td><td><a class="ref" href="https://github.com/mitul-bhatia/cn_project/blob/main/bin/doctor#L36" target="_blank" rel="noopener"><span>bin/doctor</span><b>:36</b></a></td></tr><tr><td><div class="cmdw"><div class="cmd"><code>./bin/collect-evidence</code><button type="button" class="copy" aria-label="Copy command">Copy</button></div></div></td><td class="hide-s">any</td><td>Save evidence files</td><td><a class="ref" href="https://github.com/mitul-bhatia/cn_project/blob/main/bin/collect-evidence" target="_blank" rel="noopener"><span>bin/collect-evidence</span></a></td></tr><tr><td><div class="cmdw"><div class="cmd"><code>scripts/capture-packets.sh 60</code><button type="button" class="copy" aria-label="Copy command">Copy</button></div></div></td><td class="hide-s">any</td><td>60 s capture for Wireshark</td><td><a class="ref" href="https://github.com/mitul-bhatia/cn_project/blob/main/scripts/capture-packets.sh" target="_blank" rel="noopener"><span>scripts/capture-packets.sh</span></a></td></tr><tr><td><div class="cmdw"><div class="cmd"><code>./bin/phase2 setup</code><button type="button" class="copy" aria-label="Copy command">Copy</button></div></div></td><td class="hide-s">every Mac</td><td>Arm what this Mac is responsible for</td><td><a class="ref" href="https://github.com/mitul-bhatia/cn_project/blob/main/scripts/phase2.sh#L115" target="_blank" rel="noopener"><span>scripts/phase2.sh</span><b>:115</b></a></td></tr><tr><td><div class="cmdw"><div class="cmd"><code>./bin/phase2 test</code><button type="button" class="copy" aria-label="Copy command">Copy</button></div></div></td><td class="hide-s">any</td><td>PASS / FAIL for Extensions A to E</td><td><a class="ref" href="https://github.com/mitul-bhatia/cn_project/blob/main/tests/test_phase2.sh" target="_blank" rel="noopener"><span>tests/test_phase2.sh</span></a></td></tr><tr><td><div class="cmdw"><div class="cmd"><code>./bin/phase2 dns-failover</code><button type="button" class="copy" aria-label="Copy command">Copy</button></div></div></td><td class="hide-s">Mac 1</td><td>Extension A demo</td><td><a class="ref" href="https://github.com/mitul-bhatia/cn_project/blob/main/scripts/phase2.sh#L180" target="_blank" rel="noopener"><span>scripts/phase2.sh</span><b>:180</b></a></td></tr><tr><td><div class="cmdw"><div class="cmd"><code>./bin/phase2 ttl</code><button type="button" class="copy" aria-label="Copy command">Copy</button></div></div></td><td class="hide-s">Mac 1</td><td>Extension B demo</td><td><a class="ref" href="https://github.com/mitul-bhatia/cn_project/blob/main/scripts/phase2.sh#L215" target="_blank" rel="noopener"><span>scripts/phase2.sh</span><b>:215</b></a></td></tr><tr><td><div class="cmdw"><div class="cmd"><code>./bin/phase2 isolate on|off|test</code><button type="button" class="copy" aria-label="Copy command">Copy</button></div></div></td><td class="hide-s">backend Macs</td><td>Extension C firewall</td><td><a class="ref" href="https://github.com/mitul-bhatia/cn_project/blob/main/scripts/phase2.sh#L269" target="_blank" rel="noopener"><span>scripts/phase2.sh</span><b>:269</b></a></td></tr><tr><td><div class="cmdw"><div class="cmd"><code>./bin/phase2 failover [a|b]</code><button type="button" class="copy" aria-label="Copy command">Copy</button></div></div></td><td class="hide-s">any</td><td>Extension D demo</td><td><a class="ref" href="https://github.com/mitul-bhatia/cn_project/blob/main/scripts/phase2.sh#L315" target="_blank" rel="noopener"><span>scripts/phase2.sh</span><b>:315</b></a></td></tr><tr><td><div class="cmdw"><div class="cmd"><code>./bin/phase2 cutover</code><button type="button" class="copy" aria-label="Copy command">Copy</button></div></div></td><td class="hide-s">Mac 1</td><td>Extension E demo</td><td><a class="ref" href="https://github.com/mitul-bhatia/cn_project/blob/main/scripts/phase2.sh#L405" target="_blank" rel="noopener"><span>scripts/phase2.sh</span><b>:405</b></a></td></tr><tr><td><div class="cmdw"><div class="cmd"><code>./bin/phase2 drill</code><button type="button" class="copy" aria-label="Copy command">Copy</button></div></div></td><td class="hide-s">any</td><td>Hidden fault to practise on</td><td><a class="ref" href="https://github.com/mitul-bhatia/cn_project/blob/main/scripts/phase2.sh#L454" target="_blank" rel="noopener"><span>scripts/phase2.sh</span><b>:454</b></a></td></tr><tr><td><div class="cmdw"><div class="cmd"><code>./bin/phase2 rollback</code><button type="button" class="copy" aria-label="Copy command">Copy</button></div></div></td><td class="hide-s">every Mac</td><td>Undo all Phase 2 changes</td><td><a class="ref" href="https://github.com/mitul-bhatia/cn_project/blob/main/scripts/phase2.sh#L491" target="_blank" rel="noopener"><span>scripts/phase2.sh</span><b>:491</b></a></td></tr></tbody>
+  </table></div>
+</section>
+
+</main>
+<footer><div class="wrap">Built by Team AEIN for the Computer Networks project. Source and docs: <a href="https://github.com/mitul-bhatia/cn_project" target="_blank" rel="noopener">github.com/mitul-bhatia/cn_project</a>. The simulator is a model; the recorded runs above are from the real system.</div></footer>
+
+<script>
+/* Break-it-yourself simulator. Mirrors what the real project does:
+   DNS failover (Ext A), backend failover (Ext D), standby edge + DNS cutover (Ext E), firewall (Ext C). */
+(function () {
+  "use strict";
+  var NS = "http://www.w3.org/2000/svg";
+  var svg = document.getElementById("sim");
+  if (!svg) return;
+
+  var NODES = {
+    client: { x: 20, y: 170, w: 130, h: 76, t: "Client", s: "curl / browser", c: "client" },
+    d1: { x: 230, y: 14, w: 190, h: 62, t: "DNS", s: "dnsmasq · primary", c: "dns" },
+    d2: { x: 230, y: 96, w: 190, h: 62, t: "Backup DNS", s: "same records", c: "spare" },
+    e1: { x: 330, y: 180, w: 190, h: 70, t: "nginx edge", s: "primary · :8443", c: "edge" },
+    e2: { x: 330, y: 320, w: 190, h: 70, t: "Standby edge", s: "spare · same cert", c: "spare" },
+    a: { x: 690, y: 110, w: 190, h: 64, t: "Backend A", s: "port 3001", c: "be" },
+    b: { x: 690, y: 240, w: 190, h: 64, t: "Backend B", s: "port 3002", c: "be" }
+  };
+  var EDGES = {
+    "c-d1": "M85 170V45H230",
+    "c-d2": "M110 170V127H230",
+    "c-e1": "M150 208H330",
+    "c-e2": "M120 246V355H330",
+    "e1-a": "M520 205C610 205 600 130 690 130",
+    "e1-b": "M520 225C610 225 600 255 690 255",
+    "e2-a": "M520 345C640 345 590 150 690 150",
+    "e2-b": "M520 365C640 365 600 285 690 285"
+  };
+
+  function el(name, attrs, parent) {
+    var n = document.createElementNS(NS, name);
+    for (var k in attrs) n.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(n);
+    return n;
+  }
+
+  /* ---- draw once ---- */
+  svg.setAttribute("viewBox", "0 0 900 410");
+  var fwBox = el("rect", { x: 672, y: 92, width: 226, height: 226, rx: 16, "class": "fwbox" }, svg);
+  var fwLbl = el("text", { x: 676, y: 340, "class": "fwl" }, svg);
+  fwLbl.textContent = "Firewall: only the edge may enter";
+  var edgeEls = {};
+  Object.keys(EDGES).forEach(function (id) { edgeEls[id] = el("path", { d: EDGES[id], "class": "ed" }, svg); });
+  var nodeEls = {};
+  Object.keys(NODES).forEach(function (id) {
+    var n = NODES[id];
+    var g = el("g", { "class": "node " + n.c }, svg);
+    el("rect", { x: n.x, y: n.y, width: n.w, height: n.h, rx: 12 }, g);
+    var t = el("text", { x: n.x + n.w / 2, y: n.y + n.h / 2 - 3, "class": "t" }, g); t.textContent = n.t;
+    var s = el("text", { x: n.x + n.w / 2, y: n.y + n.h / 2 + 17, "class": "s" }, g); s.textContent = n.s;
+    nodeEls[id] = { g: g, s: s };
+  });
+  var l1 = el("text", { x: 20, y: 290, "class": "lbl" }, svg); l1.textContent = "Amber line = the path of the last request";
+  var l2 = el("text", { x: 20, y: 312, "class": "lbl" }, svg); l2.textContent = "Red dashed = tried, no answer";
+
+  /* ---- state ---- */
+  var S;
+  function fresh() { return { dns1: true, a: true, b: true, e1: true, fw: false, answer: "primary", rr: 0, pending: false, sent: [] }; }
+  S = fresh();
+  var timer = null;
+
+  var $ = function (id) { return document.getElementById(id); };
+  var verdict = $("verdict"), vBig = $("vbig"), vSub = $("vsub"), chipsEl = $("chips"), storyEl = $("story"), realEl = $("real"), ttlEl = $("ttl"), ttlBar = $("ttlbar"), ttlTxt = $("ttltxt");
+
+  function setReal(cmd, ext) {
+    realEl.innerHTML = "";
+    var s = document.createElement("span"); s.textContent = "In the real project (" + ext + "): ";
+    var c = document.createElement("code"); c.textContent = cmd;
+    realEl.appendChild(s); realEl.appendChild(c);
+  }
+
+  function paintNodes(hit) {
+    var down = { d1: !S.dns1, e1: !S.e1, a: !S.a, b: !S.b };
+    Object.keys(nodeEls).forEach(function (id) {
+      var cls = "node " + NODES[id].c + (down[id] ? " down" : "") + (hit && hit.indexOf(id) > -1 ? " hit" : "");
+      nodeEls[id].g.setAttribute("class", cls);
+    });
+    nodeEls.d1.s.textContent = S.dns1 ? "dnsmasq · primary" : "STOPPED";
+    nodeEls.e1.s.textContent = S.e1 ? "primary · :8443" : "STOPPED";
+    nodeEls.a.s.textContent = S.a ? "port 3001" : "STOPPED";
+    nodeEls.b.s.textContent = S.b ? "port 3002" : "STOPPED";
+    nodeEls.e2.s.textContent = S.answer === "standby" ? "ACTIVE · DNS points here" : "spare · same cert";
+    fwBox.setAttribute("class", "fwbox" + (S.fw ? " on" : ""));
+    fwLbl.setAttribute("class", "fwl" + (S.fw ? " on" : ""));
+  }
+  function paintEdges(on, bad) {
+    Object.keys(edgeEls).forEach(function (id) {
+      var c = "ed";
+      if (bad && bad.indexOf(id) > -1) c += " bad";
+      else if (on && on.indexOf(id) > -1) c += " on";
+      edgeEls[id].setAttribute("class", c);
+    });
+  }
+
+  function route() {
+    var steps = [], on = [], bad = [], hit = ["client"], res;
+    if (S.dns1) { on.push("c-d1"); hit.push("d1"); steps.push([false, "The client asks DNS for the name. The primary DNS answers."]); }
+    else {
+      bad.push("c-d1"); on.push("c-d2"); hit.push("d2");
+      steps.push([false, "The primary DNS is silent (timeout), so the client asks the backup DNS. It has the same records, so the name still resolves."]);
+    }
+    var eid = S.answer === "primary" ? "e1" : "e2";
+    steps.push([false, "The answer points to the " + (eid === "e1" ? "primary" : "standby") + " edge."]);
+    if (eid === "e1" && !S.e1) {
+      bad.push("c-e1"); hit.push("e1");
+      steps.push([true, "The client connects to the primary edge and nobody answers. Timeout. Every user is stuck, even though both backends are healthy."]);
+      return { steps: steps, on: on, bad: bad, hit: hit, cls: "fail", big: "No answer", sub: "The edge is down", chip: "x" };
+    }
+    on.push("c-" + eid); hit.push(eid);
+    var up = []; if (S.a) up.push("a"); if (S.b) up.push("b");
+    if (!up.length) {
+      bad.push(eid + "-a", eid + "-b");
+      steps.push([true, "nginx is up, but both backends are stopped. It answers 502 Bad Gateway."]);
+      return { steps: steps, on: on, bad: bad, hit: hit, cls: "fail", big: "HTTP 502", sub: "No backend answered", chip: "x" };
+    }
+    var pick = up[S.rr % up.length]; S.rr++;
+    if (up.length === 1) steps.push([false, "nginx notices Backend " + (S.a ? "B" : "A") + " is down, retries on Backend " + pick.toUpperCase() + ", and the user sees no error."]);
+    else steps.push([false, "nginx picks Backend " + pick.toUpperCase() + " (round robin: A, B, A, B)."]);
+    on.push(eid + "-" + pick); hit.push(pick);
+    if (!S.a) bad.push(eid + "-a");
+    if (!S.b) bad.push(eid + "-b");
+    return { steps: steps, on: on, bad: bad, hit: hit, cls: "ok", big: "HTTP 200", sub: "Answered by Backend " + pick.toUpperCase(), chip: pick };
+  }
+
+  function show(r) {
+    paintNodes(r.hit); paintEdges(r.on, r.bad);
+    verdict.className = "verdict " + r.cls;
+    vBig.textContent = r.big; vSub.textContent = r.sub;
+    storyEl.innerHTML = "";
+    r.steps.forEach(function (st, i) {
+      var li = document.createElement("li"); li.setAttribute("data-n", String(i + 1));
+      if (st[0]) li.className = "bad";
+      li.textContent = st[1]; storyEl.appendChild(li);
+    });
+  }
+  function addChip(k) {
+    S.sent.push(k); if (S.sent.length > 12) S.sent.shift();
+    chipsEl.innerHTML = "";
+    S.sent.forEach(function (c) {
+      var d = document.createElement("span"); d.className = "chip " + c;
+      d.textContent = c === "x" ? "✕" : c.toUpperCase(); d.setAttribute("aria-label", c === "x" ? "failed" : "backend " + c);
+      chipsEl.appendChild(d);
+    });
+  }
+  function sendOne() { var r = route(); show(r); addChip(r.chip); return r; }
+
+  /* ---- controls ---- */
+  function press(btn, on) { btn.setAttribute("aria-pressed", on ? "true" : "false"); }
+  var B = {
+    dns: $("t-dns"), a: $("t-a"), b: $("t-b"), e1: $("t-e1"), fw: $("t-fw"),
+    cut: $("b-cut"), send: $("b-send"), six: $("b-six"), direct: $("b-direct"), reset: $("b-reset")
+  };
+
+  B.dns.addEventListener("click", function () {
+    S.dns1 = !S.dns1; press(B.dns, !S.dns1); setReal("./bin/phase2 dns-failover", "Extension A"); sendOne();
+  });
+  B.a.addEventListener("click", function () {
+    S.a = !S.a; press(B.a, !S.a); setReal("./bin/phase2 failover", "Extension D"); sendOne();
+  });
+  B.b.addEventListener("click", function () {
+    S.b = !S.b; press(B.b, !S.b); setReal("./bin/phase2 failover b", "Extension D"); sendOne();
+  });
+  B.e1.addEventListener("click", function () {
+    S.e1 = !S.e1; press(B.e1, !S.e1); setReal("./bin/phase2 cutover", "Extension E"); sendOne();
+  });
+  B.fw.addEventListener("click", function () {
+    S.fw = !S.fw; press(B.fw, S.fw); setReal("./bin/phase2 isolate on", "Extension C"); paintNodes(null);
+    storyEl.innerHTML = "";
+    var li = document.createElement("li"); li.setAttribute("data-n", "1");
+    li.textContent = S.fw ? "Firewall on each backend Mac: only the edge may reach ports 3001 and 3002. Now press “Client tries a backend directly”." : "Firewall off: any machine on the network can reach the backends directly.";
+    storyEl.appendChild(li);
+  });
+  B.direct.addEventListener("click", function () {
+    setReal("./bin/phase2 isolate test", "Extension C");
+    paintNodes(["client", "a"]); paintEdges([], []);
+    verdict.className = "verdict " + (S.fw ? "ok" : "warn");
+    vBig.textContent = S.fw ? "Dropped" : "Reached";
+    vSub.textContent = S.fw ? "No reply. The client times out." : "Anyone can skip the edge";
+    storyEl.innerHTML = "";
+    var li = document.createElement("li"); li.setAttribute("data-n", "1");
+    li.textContent = S.fw
+      ? "The client skips the edge and connects straight to Backend A. The firewall allows only the edge, so the packet is dropped. No answer, no error: just a timeout."
+      : "The client skips the edge and talks to Backend A directly. Nothing stops it, so the edge and its TLS can be bypassed. This is why Extension C exists.";
+    storyEl.appendChild(li);
+  });
+  B.cut.addEventListener("click", function () {
+    setReal("./bin/phase2 cutover", "Extension E");
+    var target = S.answer === "primary" ? "standby" : "primary";
+    S.pending = true; B.cut.disabled = true; ttlEl.hidden = false;
+    var t0 = Date.now(), total = 4000;
+    ttlTxt.textContent = "DNS record changed. Clients keep the old answer until the TTL ends (30 s in the real demo, sped up here).";
+    storyEl.innerHTML = "";
+    var li = document.createElement("li"); li.setAttribute("data-n", "1");
+    li.textContent = "While the old answer is still cached, requests still go to the " + (S.answer === "primary" ? "primary" : "standby") + " edge. Press “Send request” now to see it.";
+    storyEl.appendChild(li);
+    timer = setInterval(function () {
+      var p = Math.min(1, (Date.now() - t0) / total);
+      ttlBar.style.width = (p * 100) + "%";
+      if (p >= 1) {
+        clearInterval(timer); timer = null; S.answer = target; S.pending = false; B.cut.disabled = false;
+        B.cut.textContent = S.answer === "primary" ? "Move DNS to the standby edge" : "Move DNS back to the primary edge";
+        ttlTxt.textContent = "TTL over. New lookups now go to the " + target + " edge."; sendOne();
+      }
+    }, 80);
+  });
+  B.send.addEventListener("click", function () { sendOne(); });
+  B.six.addEventListener("click", function () { for (var i = 0; i < 6; i++) sendOne(); });
+  B.reset.addEventListener("click", function () {
+    if (timer) { clearInterval(timer); timer = null; }
+    S = fresh(); [B.dns, B.a, B.b, B.e1, B.fw].forEach(function (b) { press(b, false); });
+    B.cut.disabled = false; B.cut.textContent = "Move DNS to the standby edge"; ttlEl.hidden = true; ttlBar.style.width = "0";
+    chipsEl.innerHTML = ""; setReal("./bin/phase2 test", "everything");
+    sendOne(); sendOne();
+  });
+
+  setReal("./bin/phase2 test", "everything"); ttlEl.hidden = true;
+  sendOne(); sendOne();
+})();
+
+/* ---- stepper, copy buttons, command filter ---- */
+(function () {
+  var tabs = document.querySelectorAll(".step");
+  var panels = document.querySelectorAll(".spanel");
+  function pick(i) {
+    tabs.forEach(function (t, k) { t.setAttribute("aria-selected", k === i ? "true" : "false"); });
+    panels.forEach(function (p, k) { p.hidden = k !== i; });
+  }
+  tabs.forEach(function (t, i) { t.addEventListener("click", function () { pick(i); }); });
+  if (tabs.length) pick(0);
+
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest(".copy"); if (!b) return;
+    var txt = b.parentElement.querySelector("code").textContent;
+    function ok() { b.textContent = "Copied"; b.classList.add("done"); setTimeout(function () { b.textContent = "Copy"; b.classList.remove("done"); }, 1400); }
+    function fb() { var a = document.createElement("textarea"); a.value = txt; document.body.appendChild(a); a.select(); try { document.execCommand("copy"); } catch (x) { } a.remove(); ok(); }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(ok, fb); else fb();
+  });
+
+  var q = document.getElementById("q");
+  if (q) q.addEventListener("input", function () {
+    var v = q.value.toLowerCase();
+    document.querySelectorAll("#tbl tbody tr").forEach(function (r) { r.style.display = r.textContent.toLowerCase().indexOf(v) > -1 ? "" : "none"; });
+  });
+})();
+
+</script>
+</body>
+</html>

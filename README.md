@@ -1,5 +1,7 @@
 # CN Private Network Service Platform - Phase 1 + Phase 2
 
+> **Live showcase:** https://mitul-bhatia.github.io/cn_project/ - follow one request through DNS, TLS and nginx, then break the system yourself in the simulator. Source: [`site/`](site/).
+
 **What this does.** A client types `https://app.team1.test:8443`. Our own DNS server (dnsmasq) turns that
 name into the edge Mac's IP, the client opens a TCP connection and a TLS session to nginx, and nginx
 forwards the HTTP request - alternating - to Backend A or Backend B. Every step can be observed with
